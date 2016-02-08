@@ -84,16 +84,6 @@
 #define FRAME_RECEIVED_ID       2
 
 /*
- * Suspension point for initialization procedure.
- */
-thread_reference_t lwip_trp = NULL;
-
-/*
- * Stack area for the LWIP-MAC thread.
- */
-static THD_WORKING_AREA(wa_lwip_thread, LWIP_THREAD_STACK_SIZE);
-
-/*
  * Initialization.
  */
 static void low_level_init(struct netif *netif) {
@@ -117,7 +107,8 @@ static void low_level_init(struct netif *netif) {
 static err_t low_level_output(struct netif *netif, struct pbuf *p) {
     dbg_print("Sending a frame\n");
     enc_transmit_pbuf(p);
-    LWIP_DEBUGF(NETIF_DEBUG, ("sent %d bytes.\n", p->tot_len));
+    //LWIP_DEBUGF(NETIF_DEBUG, ("sent %d bytes.\n", p->tot_len));
+    dbg_print_val("Sent bytes: ", p->tot_len);
 }
 
 /*
@@ -179,6 +170,24 @@ static err_t ethernetif_init(struct netif *netif) {
     return ERR_OK;
 }
 
+/*
+ * Suspension point for initialization procedure.
+ */
+thread_reference_t lwip_trp = NULL;
+
+/*
+ * Stack area for the LWIP-MAC thread.
+ */
+static THD_WORKING_AREA(wa_lwip_thread, 1024);
+
+void print_regs() {
+    dbg_print_val8("ECON1 ", encReadRegByte(ECON1));
+    dbg_print_val8("ECON2 ", encReadRegByte(ECON2));
+    dbg_print_val8("ESTAT ", encReadRegByte(ESTAT));
+    dbg_print_val8("EIR   ", encReadRegByte(EIR));
+
+}
+
 /**
  * @brief LWIP handling thread.
  *
@@ -206,7 +215,7 @@ static THD_FUNCTION(lwip_thread, p) {
     dbg_print("Adding interface\n");
     netif_add(&thisif, &ip, &netmask, &gateway, NULL, ethernetif_init, tcpip_input);
     netif_set_default(&thisif);
-    dbg_print("UPping interface\n");
+    dbg_print("up'ing interface\n");
     netif_set_up(&thisif);
 
     dbg_print("Entering loop\n");
@@ -215,19 +224,9 @@ static THD_FUNCTION(lwip_thread, p) {
         low_level_input(&thisif);
         chThdSleep(50);
         if(x++ == 50) {
-            struct tcp_pcb *pcb = tcp_new();
-            ip_addr_t addr_src;
-            IP4_ADDR(&addr_src, 192, 168, 0, 111);
-            tcp_bind(pcb, &addr_src, 5555);
-            ip_addr_t addr_dst;
-            IP4_ADDR(&addr_dst, 192, 168, 0, 8);
+            etharp_gratuitous(&thisif);
 
-            tcp_connect(pcb, &addr_dst, 80, NULL);
-            tcp_close(pcb);
-
-            dbg_print_val8("ECON1 ", encReadRegByte(ECON1));
-            dbg_print_val8("ECON2 ", encReadRegByte(ECON2));
-            dbg_print_val8("ESTAT ", encReadRegByte(ESTAT));
+            print_regs();
             x = 0;
         }
     }

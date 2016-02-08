@@ -18,6 +18,8 @@ include_directories(
 include(cmakefiles/startup.cmake)
 include(cmakefiles/chibios.cmake)
 include(cmakefiles/lwip.cmake)
+set(SOURCE_FILES ${SOURCE_FILES} deps/tinyprintf/tinyprintf.c)
+include_directories(deps/tinyprintf)
 
 enable_language(ASM)
 

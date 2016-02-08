@@ -1,6 +1,6 @@
 get_filename_component(LINKER_SCRIPT ${CHIBIOS}/os/common/ports/ARMCMx/compilers/GCC/ ABSOLUTE)
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L ${LINKER_SCRIPT} -L ${LINKER_SCRIPT}/ld/ -T STM32F103xB.ld \
-    -Wl,--defsym=__process_stack_size__=0x400 -Wl,--defsym=__main_stack_size__=0x400")
+    -Wl,--defsym=__process_stack_size__=0x700 -Wl,--defsym=__main_stack_size__=0x700")
 
 ## Startup
 

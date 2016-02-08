@@ -42,6 +42,7 @@ void encWriteReg(uint8_t address, uint16_t data);
 
 void encReadBuf(uint16_t  address, uint16_t len, uint8_t* data);
 void encWriteBuf(uint16_t  address, uint16_t len, const uint8_t* data);
+void encWriteBufRaw(const uint8_t *data, uint16_t len);
 
 
 #endif //ARM_ETHERNETBOARD_ENC28J60_H

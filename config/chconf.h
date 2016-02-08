@@ -195,7 +195,7 @@
 #define CH_CFG_USE_MUTEXES_RECURSIVE        FALSE
 
 /**
- * @brief   Conditional Variables APIs.
+ * @brief   Conditional Variables APIs.FALSE
  * @details If enabled then the conditional variables APIs are included
  *          in the kernel.
  *
@@ -353,7 +353,7 @@
  *
  * @note    The default is @p FALSE.
  */
-#define CH_DBG_ENABLE_ASSERTS               TRUE
+#define CH_DBG_ENABLE_ASSERTS               FALSE
 
 /**
  * @brief   Debug option, trace buffer.

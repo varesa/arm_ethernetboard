@@ -4,9 +4,17 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <ch.h>
 
+#include "tinyprintf.h"
 #include "stm32f1xx.h"
 #include "debug.h"
+
+mutex_t DbgMutex;
+
+void dbg_init() {
+    chMtxObjectInit(&DbgMutex);
+}
 
 void dbg_print(const char *msg) {
     while(*msg != '\0') {
@@ -15,12 +23,21 @@ void dbg_print(const char *msg) {
     }
 }
 
-void dbg_print_val8(const char *msg, uint8_t val) {
+void dbg_print_val(const char *msg, uint32_t val) {
     char buf[4];
     itoa(val, buf, 10);
     dbg_print(msg);
     dbg_print(buf);
     dbg_print("\n");
+}
+
+char buffer[50];
+void dbg_print_wrapper(const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    tfp_vsprintf(buffer, format, args);
+    va_end(args);
+    dbg_print(buffer);
 }
 
 void prvGetRegistersFromStack( uint32_t *pulFaultStackAddress )

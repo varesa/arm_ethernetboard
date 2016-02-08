@@ -65,8 +65,15 @@ typedef uint32_t        mem_ptr_t;
 #define PACK_STRUCT_STRUCT __attribute__((packed))
 
 
+#define U16_F "u"
+#define S16_F "d"
+#define X16_F "x"
+#define U32_F "u"
+#define S32_F "d"
+#define X32_F "x"
+
 #define LWIP_DEBUG
-#define LWIP_PLATFORM_DIAG(x)
+#define LWIP_PLATFORM_DIAG(x) dbg_print_wrapper x
 
 
 #define LWIP_PLATFORM_ASSERT(x) {                                       \

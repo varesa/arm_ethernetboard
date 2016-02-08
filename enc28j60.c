@@ -22,7 +22,7 @@ static uint8_t tx_buffer[SPI_BUFFER_SIZE];
 static uint8_t rx_buffer[SPI_BUFFER_SIZE];
 
 // Mutex
-static mutex_t SPIMutex;
+mutex_t SPIMutex;
 
 // Function declarations
 
@@ -48,35 +48,59 @@ void encInitRegisters(uint8_t mac[]) {
     chThdSleepSeconds(2); // errata B7/2
     while (!encReadOp(ENC28J60_READ_CTRL_REG, ESTAT) & ESTAT_CLKRDY) continue;
 
+    // Discard packages
+    encSetBank(ECON1);
+    encWriteOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_TXRST | ECON1_RXRST);
+    while(encReadRegByte(EPKTCNT)) {
+        encWriteOp(ENC28J60_BIT_FIELD_SET, ECON2, ECON2_PKTDEC);
+    }
+    encWriteOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_TXRST | ECON1_RXRST);
+
+    // Set RX Buffer pointers
     encWriteReg(ERXST, RXSTART_INIT);
     encWriteReg(ERXRDPT, RXSTART_INIT);
     encWriteReg(ERXND, RXSTOP_INIT);
+
+    // Set TX Buffer pointers
     encWriteReg(ETXST, TXSTART_INIT);
     encWriteReg(ETXND, TXSTOP_INIT);
-    encWriteRegByte(ERXFCON, ERXFCON_UCEN|ERXFCON_CRCEN|ERXFCON_PMEN|ERXFCON_BCEN);
-    encWriteReg(EPMM0, 0x303f);
-    encWriteReg(EPMCS, 0xf7f9);
+
+    // Set rx filters
+    encWriteRegByte(ERXFCON, ERXFCON_BCEN | ERXFCON_MCEN | ERXFCON_HTEN | ERXFCON_PMEN | ERXFCON_PMEN | ERXFCON_UCEN);
+
+    // MAC control registers
     encWriteRegByte(MACON1, MACON1_MARXEN|MACON1_TXPAUS|MACON1_RXPAUS);
     encWriteRegByte(MACON2, 0x00);
-    encWriteOp(ENC28J60_BIT_FIELD_SET, MACON3,
-               MACON3_PADCFG0|MACON3_TXCRCEN|MACON3_FRMLNEN);
+    encWriteRegByte(MACON3, MACON3_FULDPX | MACON3_TXCRCEN | MACON3_FRMLNEN | MACON3_PADCFG0 | MACON3_PADCFG1 | MACON3_PADCFG2);
+
+    // Full duplex
+    encWritePhy(PHCON1, PHCON1_PDPXMD);
+
+    // Pattern matching
+    //encWriteReg(EPMM0, 0x303f);
+    //encWriteReg(EPMCS, 0xf7f9);
+
+    // Magic=
     encWriteReg(MAIPG, 0x0C12);
+
+    // ?
     encWriteRegByte(MABBIPG, 0x12);
     encWriteReg(MAMXFL, MAX_FRAMELEN);
+
+    // Set MAC addr
     encWriteRegByte(MAADR5, mac[0]);
     encWriteRegByte(MAADR4, mac[1]);
     encWriteRegByte(MAADR3, mac[2]);
     encWriteRegByte(MAADR2, mac[3]);
     encWriteRegByte(MAADR1, mac[4]);
     encWriteRegByte(MAADR0, mac[5]);
-    encWritePhy(PHCON2, PHCON2_HDLDIS);
-    encSetBank(ECON1);
-    encWriteOp(ENC28J60_BIT_FIELD_SET, EIE, EIE_INTIE|EIE_PKTIE);
+
+    // Enable reception
     encWriteOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_RXEN);
 }
 
 void encInit(uint8_t mac[]) {
-    dbg_print("ENC: Starting to init\n");
+    dbg_print("ENC: Start init\n");
     // Initialize SPI
     encSpiInit();
 
@@ -121,11 +145,11 @@ void encReset(bool reset) {
  * Communication
  */
 
-uint8_t encReadOp(uint8_t op, uint8_t address) {
+uint8_t _encReadOp(uint8_t op, uint8_t address) {
+    encSetBank(address);
     tx_buffer[0] = op | (address & ADDR_MASK);
     uint8_t result;
 
-    chMtxLock(&SPIMutex);
     //spiStart(SPI_ENC, &spicfg);
     spiSelect(SPI_ENC);
     //chThdSleep(1);
@@ -139,16 +163,21 @@ uint8_t encReadOp(uint8_t op, uint8_t address) {
     spiUnselect(SPI_ENC);
     //chThdSleep(1);
     //spiReleaseBus(SPI_ENC);
-    chMtxUnlock(&SPIMutex);
 
     return result;
 }
 
-void encWriteOp(uint8_t op, uint8_t address, uint8_t data) {
+uint8_t encReadOp(uint8_t op, uint8_t address) {
+    chMtxLock(&SPIMutex);
+    uint8_t val = _encReadOp(op, address);
+    chMtxUnlock(&SPIMutex);
+    return val;
+}
+
+void _encWriteOp(uint8_t op, uint8_t address, uint8_t data) {
     tx_buffer[0] = op | (address & ADDR_MASK);
     tx_buffer[1] = data;
 
-    chMtxLock(&SPIMutex);
     //spiStart(SPI_ENC, &spicfg);
     spiSelect(SPI_ENC);
     //chThdSleep(1);
@@ -157,6 +186,12 @@ void encWriteOp(uint8_t op, uint8_t address, uint8_t data) {
     spiUnselect(SPI_ENC);
     //chThdSleep(1);
     //spiReleaseBus(SPI_ENC);
+}
+
+void encWriteOp(uint8_t op, uint8_t address, uint8_t data) {
+    chMtxLock(&SPIMutex);
+    encSetBank(address);
+    _encWriteOp(op, address, data);
     chMtxUnlock(&SPIMutex);
 }
 
@@ -170,9 +205,9 @@ static uint8_t enc_address;
 
 void encSetBank(uint8_t address) {
     if((address & BANK_MASK) != enc_address) {
-        encWriteOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_BSEL1|ECON1_BSEL0);
         enc_address = address & BANK_MASK;
-        encWriteOp(ENC28J60_BIT_FIELD_SET, ECON1, enc_address>>5);
+        _encWriteOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_BSEL1|ECON1_BSEL0);
+        _encWriteOp(ENC28J60_BIT_FIELD_SET, ECON1, enc_address>>5);
     }
 }
 
@@ -180,55 +215,110 @@ void encSetBank(uint8_t address) {
  * Control registers
  */
 
+uint8_t _encReadRegByte(uint8_t address) {
+    uint8_t byte = _encReadOp(ENC28J60_READ_CTRL_REG, address);
+    return byte;
+}
+
 uint8_t encReadRegByte(uint8_t address) {
-    encSetBank(address);
-    return encReadOp(ENC28J60_READ_CTRL_REG, address);
+    chMtxLock(&SPIMutex);
+    uint8_t byte = _encReadRegByte(address);
+    chMtxUnlock(&SPIMutex);
+    return byte;
+}
+
+uint16_t _encReadReg(uint8_t address) {
+    uint16_t value = _encReadRegByte(address) + (_encReadRegByte((uint8_t)(address + 1)) << 8);
+    return value;
 }
 
 uint16_t encReadReg(uint8_t address) {
-    return encReadRegByte(address) + (encReadRegByte((uint8_t)(address + 1)) << 8);
+    chMtxLock(&SPIMutex);
+    uint16_t value = _encReadReg(address);
+    chMtxUnlock(&SPIMutex);
+    return value;
+}
+
+void _encWriteRegByte(uint8_t address, uint8_t data) {
+    encSetBank(address);
+    _encWriteOp(ENC28J60_WRITE_CTRL_REG, address, data);
 }
 
 void encWriteRegByte(uint8_t address, uint8_t data) {
-    encSetBank(address);
-    encWriteOp(ENC28J60_WRITE_CTRL_REG, address, data);
+    chMtxLock(&SPIMutex);
+    _encWriteRegByte(address, data);
+    chMtxUnlock(&SPIMutex);
+}
+
+void _encWriteReg(uint8_t address, uint16_t data) {
+    _encWriteRegByte(address, (uint8_t)(data & 0xFF));
+    _encWriteRegByte((uint8_t)(address + 1), (uint8_t)((data >> 8) & 0xFF));
 }
 
 void encWriteReg(uint8_t address, uint16_t data) {
-    encWriteRegByte(address, (uint8_t)(data & 0xFF));
-    encWriteRegByte((uint8_t)(address + 1), (uint8_t)((data >> 8) & 0xFF));
+    chMtxLock(&SPIMutex);
+    _encWriteReg(address, data);
+    chMtxUnlock(&SPIMutex);
 }
 
-uint16_t encReadPhyByte(uint8_t address) {
-    encWriteRegByte(MIREGADR, address);
-    encWriteRegByte(MICMD, MICMD_MIIRD);
-    while (encReadRegByte(MISTAT) & MISTAT_BUSY) continue;
-    encWriteRegByte(MICMD, 0x00);
-    return encReadRegByte(MIRD + 1);
+uint16_t encReadPhy(uint8_t address) {
+    chMtxLock(&SPIMutex);
+    _encWriteRegByte(MIREGADR, address);
+    _encWriteRegByte(MICMD, MICMD_MIIRD);
+    while (_encReadRegByte(MISTAT) & MISTAT_BUSY) continue;
+    _encWriteRegByte(MICMD, 0x00);
+    uint16_t val = _encReadReg(MIRD);
+    chMtxUnlock(&SPIMutex);
+    return val;
 }
 
 void encWritePhy(uint8_t address, uint16_t data) {
-    encWriteRegByte(MIREGADR, address);
-    encWriteReg(MIWR, data);
-    while (encReadRegByte(MISTAT) & MISTAT_BUSY) continue;
+    chMtxLock(&SPIMutex);
+    while (_encReadRegByte(MISTAT) & MISTAT_BUSY) continue;
+    _encWriteRegByte(MIREGADR, address);
+    _encWriteReg(MIWR, data);
+    while (_encReadRegByte(MISTAT) & MISTAT_BUSY) continue;
+    chMtxUnlock(&SPIMutex);
 }
 
 void encReadBuf(uint16_t  address, uint16_t len, uint8_t* data) {
     if(len == 0) {
         return;
     }
-    encWriteReg(ERDPT, address);
+    chMtxLock(&SPIMutex);
+    _encWriteReg(ERDPT, address);
     spiSelect(SPI_ENC);
-    spiExchange(SPI_ENC, len, tx_buffer, data);
+    tx_buffer[0] = ENC28J60_READ_BUF_MEM | 0x1A;
+    spiSend(SPI_ENC, 1, tx_buffer);
+    spiReceive(SPI_ENC, len, data);
     spiUnselect(SPI_ENC);
+    chMtxUnlock(&SPIMutex);
+}
+
+void _encWriteBufRaw(const uint8_t *data, uint16_t len) {
+    spiSelect(SPI_ENC);
+    tx_buffer[0] = ENC28J60_WRITE_BUF_MEM | 0x1A;
+    spiSend(SPI_ENC, 1, tx_buffer);
+    spiSend(SPI_ENC, len, data);
+    spiUnselect(SPI_ENC);
+}
+
+
+void encWriteBufRaw(const uint8_t *data, uint16_t len) {
+    if(len == 0) {
+        return;
+    }
+    chMtxLock(&SPIMutex);
+    _encWriteBufRaw(data, len);
+    chMtxUnlock(&SPIMutex);
 }
 
 void encWriteBuf(uint16_t  address, uint16_t len, const uint8_t* data) {
     if(len == 0) {
         return;
     }
-    encWriteReg(EWRPT, address);
-    spiSelect(SPI_ENC);
-    spiExchange(SPI_ENC, len, data, rx_buffer);
-    spiUnselect(SPI_ENC);
+    chMtxLock(&SPIMutex);
+    _encWriteReg(EWRPT, address);
+    _encWriteBufRaw(data, len);
+    chMtxUnlock(&SPIMutex);
 }

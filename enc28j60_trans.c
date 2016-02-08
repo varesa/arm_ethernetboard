@@ -10,7 +10,6 @@
 #include "enc28j60_registers.h"
 
 
-void DEBUG(const char *format, ...) {}
 
 static uint16_t next_frame_location = 0;
 static uint16_t rxbufsize = RXSTOP_INIT;
@@ -36,12 +35,20 @@ void receive_end(uint8_t header[6])
         encWriteReg(ERXRDPT, next_frame_location - 1);
     /* workaround end */
 
-    DEBUG("before %d, ", encReadRegByte(EPKTCNT));
+    dbg_print_val8("Packages pending before: ", encReadRegByte(EPKTCNT));
     encSetBank(ECON2);
     encWriteOp(ENC28J60_BIT_FIELD_SET, ECON2, ECON2_PKTDEC);
-    DEBUG("after %d.\n", encReadRegByte(EPKTCNT));
+    dbg_print_val8("packages pending after: ", encReadRegByte(EPKTCNT));
 
-    DEBUG("read with header (%02x %02x) %02x %02x %02x %02x.\n", header[1], /* swapped due to endianness -- i want to read 1234 */ header[0], header[2], header[3], header[4], header[5]);
+    dbg_print_val8("Read: [0]", header[0]);
+    dbg_print_val8("Read: [1]", header[1]);
+    dbg_print_val8("Read: [2]", header[2]);
+    dbg_print_val8("Read: [3]", header[3]);
+    dbg_print_val8("Read: [4]", header[4]);
+    dbg_print_val8("Read: [5]", header[5]);
+
+
+    //DEBUG("read with header (%02x %02x) %02x %02x %02x %02x.\n", header[1], /* swapped due to endianness -- i want to read 1234 */ header[0], header[2], header[3], header[4], header[5]);
 }
 
 
@@ -57,7 +64,7 @@ int enc_read_received_pbuf(struct pbuf **buf)
 
     *buf = pbuf_alloc(PBUF_RAW, length, PBUF_RAM);
     if (*buf == NULL)
-        DEBUG("failed to allocate buf of length %u, discarding", length);
+        dbg_print_val("failed to allocate buf, discarding, length: ", length);
     else
         encReadBuf(ENC_READLOCATION_ANY, length, (*buf)->payload);
 
@@ -83,7 +90,7 @@ void transmit_start()
 
 void transmit_partial(uint8_t *data, uint16_t length)
 {
-    encWriteBuf(rxbufsize+1, length, data);
+    encWriteBufRaw(data, length);
 }
 
 void transmit_end(uint16_t length)
@@ -109,9 +116,19 @@ void transmit_end(uint16_t length)
     /* block */
     while (encReadRegByte(ECON1) & ECON1_TXRTS);
 
+    uint8_t tmp[45];
+    encReadBuf(rxbufsize, 45, tmp);
+
     uint8_t result[7];
     encReadBuf(rxbufsize + 1 + length, 7, result);
-    DEBUG("transmitted. %02x %02x %02x %02x %02x %02x %02x\n", result[0], result[1], result[2], result[3], result[4], result[5], result[6]);
+    //("transmitted. %02x %02x %02x %02x %02x %02x %02x\n", result[0], result[1], result[2], result[3], result[4], result[5], result[6]);
+    dbg_print_val("Transmitted: [0]", result[0]);
+    dbg_print_val("Transmitted: [1]", result[1]);
+    dbg_print_val("Transmitted: [2]", result[2]);
+    dbg_print_val("Transmitted: [3]", result[3]);
+    dbg_print_val("Transmitted: [4]", result[4]);
+    dbg_print_val("Transmitted: [5]", result[5]);
+
 
     /** @todo parse that and return reasonable state */
 }

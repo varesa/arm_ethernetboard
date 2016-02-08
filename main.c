@@ -30,11 +30,13 @@ static THD_FUNCTION(Thread1, arg) {
 uint8_t mac[6] = {0x00, 0x04, 0xED, 0x34, 0xC9, 0xC1};
 
 int main() {
-    dbg_print("\n\nReboot\n\n");
     halInit();
     chSysInit();
 
     chRegSetThreadName("main");
+
+    dbg_init();
+    dbg_print("\n\nReboot\n\n");
 
     chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO+1, Thread1, NULL);
 
