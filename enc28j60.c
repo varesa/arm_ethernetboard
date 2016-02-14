@@ -45,7 +45,7 @@ void        encWritePhy(uint8_t address, uint16_t data);
 
 void encInitRegisters(uint8_t mac[]) {
     encWriteOp(ENC28J60_SOFT_RESET, 0, ENC28J60_SOFT_RESET);
-    chThdSleepSeconds(2); // errata B7/2
+    chThdSleepSeconds(1); // errata B7/2
     while (!encReadOp(ENC28J60_READ_CTRL_REG, ESTAT) & ESTAT_CLKRDY) continue;
 
     // Discard packages

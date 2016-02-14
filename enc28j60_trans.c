@@ -40,12 +40,13 @@ void receive_end(uint8_t header[6])
     encWriteOp(ENC28J60_BIT_FIELD_SET, ECON2, ECON2_PKTDEC);
     dbg_print_val8("packages pending after: ", encReadRegByte(EPKTCNT));
 
-    dbg_print_val8("Read: [0]", header[0]);
+    dbg_print_wrapper("Receive vectror: %X %X %X %X %X %X\n", header[5], header[4], header[3], header[2], header[1], header[0]);
+    /*dbg_print_val8("Read: [0]", header[0]);
     dbg_print_val8("Read: [1]", header[1]);
     dbg_print_val8("Read: [2]", header[2]);
     dbg_print_val8("Read: [3]", header[3]);
     dbg_print_val8("Read: [4]", header[4]);
-    dbg_print_val8("Read: [5]", header[5]);
+    dbg_print_val8("Read: [5]", header[5]);*/
 
 
     //DEBUG("read with header (%02x %02x) %02x %02x %02x %02x.\n", header[1], /* swapped due to endianness -- i want to read 1234 */ header[0], header[2], header[3], header[4], header[5]);

@@ -99,6 +99,7 @@ static void low_level_init(struct netif *netif) {
 
     /* Do whatever else is needed to initialize interface. */
     encInit(netif->hwaddr);
+    chThdSleepSeconds(2); // Wait for link
 }
 
 /*
@@ -213,7 +214,8 @@ static THD_FUNCTION(lwip_thread, p) {
     netmask = opts->netmask;
 
     dbg_print("Adding interface\n");
-    netif_add(&thisif, &ip, &netmask, &gateway, NULL, ethernetif_init, tcpip_input);
+    //netif_add(&thisif, &ip, &netmask, &gateway, NULL, ethernetif_init, tcpip_input);
+    netif_add(&thisif, &ip, &netmask, &gateway, NULL, ethernetif_init, ethernet_input);
     netif_set_default(&thisif);
     dbg_print("up'ing interface\n");
     netif_set_up(&thisif);
@@ -224,7 +226,7 @@ static THD_FUNCTION(lwip_thread, p) {
         low_level_input(&thisif);
         chThdSleep(50);
         if(x++ == 50) {
-            etharp_gratuitous(&thisif);
+            //etharp_gratuitous(&thisif);
 
             print_regs();
             x = 0;

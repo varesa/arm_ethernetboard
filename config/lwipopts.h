@@ -1994,7 +1994,7 @@
  * TIMERS_DEBUG: Enable debugging in timers.c.
  */
 #ifndef TIMERS_DEBUG
-#define TIMERS_DEBUG                    LWIP_DBG_ON
+#define TIMERS_DEBUG                    LWIP_DBG_OFF
 #endif
 
 /**
