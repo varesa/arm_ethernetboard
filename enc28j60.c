@@ -71,21 +71,16 @@ void encInitRegisters(uint8_t mac[]) {
     // MAC control registers
     encWriteRegByte(MACON1, MACON1_MARXEN|MACON1_TXPAUS|MACON1_RXPAUS);
     encWriteRegByte(MACON2, 0x00);
-    encWriteRegByte(MACON3, MACON3_FULDPX | MACON3_TXCRCEN | MACON3_FRMLNEN | MACON3_PADCFG0 | MACON3_PADCFG1 | MACON3_PADCFG2);
+    encWriteRegByte(MACON3, MACON3_PADCFG0 |MACON3_TXCRCEN | MACON3_FRMLNEN | MACON3_FULDPX);
 
     // Full duplex
     encWritePhy(PHCON1, PHCON1_PDPXMD);
+    encWritePhy(PHCON2, PHCON2_HDLDIS);
 
-    // Pattern matching
-    //encWriteReg(EPMM0, 0x303f);
-    //encWriteReg(EPMCS, 0xf7f9);
+    encWriteReg(MAIPG, 0x0012);
+    encWriteRegByte(MABBIPG, 0x15);
 
-    // Magic=
-    encWriteReg(MAIPG, 0x0C12);
-
-    // ?
-    encWriteRegByte(MABBIPG, 0x12);
-    encWriteReg(MAMXFL, MAX_FRAMELEN);
+    encWriteReg(MAMXFL, 1518);
 
     // Set MAC addr
     encWriteRegByte(MAADR5, mac[0]);
@@ -121,13 +116,15 @@ void encInit(uint8_t mac[]) {
 
 const SPIConfig spicfg  = {
     NULL,
-    GPIO_ENC_PORT,
-    GPIO_ENC_CS,
+    GPIOA, //GPIO_ENC_PORT,
+    GPIOA_USART_RX, //GPIO_ENC_CS,
     0
 };
 
 void encSpiInit() {
-    palSetPad(GPIO_ENC_PORT,GPIO_ENC_CS);
+    //palSetPad(GPIO_ENC_PORT,GPIO_ENC_CS);
+    palSetPadMode(GPIOA, GPIOA_USART_RX, PAL_MODE_OUTPUT_PUSHPULL);
+    palSetPad(GPIOA,GPIOA_USART_RX);
 
     spiInit();
     spiStart(SPI_ENC, &spicfg);

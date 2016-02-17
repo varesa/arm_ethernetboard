@@ -125,7 +125,7 @@ static struct pbuf *low_level_input(struct netif *netif) {
     epktcnt = encReadRegByte(EPKTCNT);
 
     if (epktcnt) {
-        dbg_print("Incoming\n");
+        //dbg_print("Incoming\n");
         if (enc_read_received_pbuf(&buf) == 0)
         {
             LWIP_DEBUGF(NETIF_DEBUG, ("incoming: %d packages, first read into %x\n", epktcnt, (unsigned int)(buf)));
@@ -225,12 +225,12 @@ static THD_FUNCTION(lwip_thread, p) {
     while(1) {
         low_level_input(&thisif);
         chThdSleep(50);
-        if(x++ == 50) {
+        /*if(x++ == 50) {
             //etharp_gratuitous(&thisif);
 
             print_regs();
             x = 0;
-        }
+        }*/
     }
 
 }
