@@ -106,10 +106,10 @@ static void low_level_init(struct netif *netif) {
  * Transmits a frame.
  */
 static err_t low_level_output(struct netif *netif, struct pbuf *p) {
-    dbg_print("Sending a frame\n");
+    //dbg_print("Sending a frame\n");
     enc_transmit_pbuf(p);
     //LWIP_DEBUGF(NETIF_DEBUG, ("sent %d bytes.\n", p->tot_len));
-    dbg_print_val("Sent bytes: ", p->tot_len);
+    //dbg_print_val("Sent bytes: ", p->tot_len);
 }
 
 /*
@@ -224,13 +224,7 @@ static THD_FUNCTION(lwip_thread, p) {
     int x = 0;
     while(1) {
         low_level_input(&thisif);
-        chThdSleep(50);
-        /*if(x++ == 50) {
-            //etharp_gratuitous(&thisif);
-
-            print_regs();
-            x = 0;
-        }*/
+        chThdSleep(10);
     }
 
 }

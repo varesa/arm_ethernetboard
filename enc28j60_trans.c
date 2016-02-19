@@ -41,7 +41,7 @@ void receive_end(uint8_t header[6])
     encWriteOp(ENC28J60_BIT_FIELD_SET, ECON2, ECON2_PKTDEC);
     //dbg_print_val8("packages pending after: ", encReadRegByte(EPKTCNT));
 
-    dbg_print_wrapper("Receive vector: %X %X %X %X, next packet loc: %X %X\n", header[5], header[4], header[3], header[2], header[1], header[0]);
+    //dbg_print_wrapper("Receive vector: %X %X %X %X, next packet loc: %X %X\n", header[5], header[4], header[3], header[2], header[1], header[0]);
 }
 
 
@@ -115,12 +115,12 @@ void transmit_end(uint16_t length)
     uint8_t result[7];
     encReadBuf(rxbufsize + 1 + length, 7, result);
     //("transmitted. %02x %02x %02x %02x %02x %02x %02x\n", result[0], result[1], result[2], result[3], result[4], result[5], result[6]);
-    dbg_print_val("Transmitted: [0]", result[0]);
-    dbg_print_val("Transmitted: [1]", result[1]);
-    dbg_print_val("Transmitted: [2]", result[2]);
-    dbg_print_val("Transmitted: [3]", result[3]);
-    dbg_print_val("Transmitted: [4]", result[4]);
-    dbg_print_val("Transmitted: [5]", result[5]);
+    //dbg_print_val("Transmitted: [0]", result[0]);
+    //dbg_print_val("Transmitted: [1]", result[1]);
+    //dbg_print_val("Transmitted: [2]", result[2]);
+    //dbg_print_val("Transmitted: [3]", result[3]);
+    //dbg_print_val("Transmitted: [4]", result[4]);
+    //dbg_print_val("Transmitted: [5]", result[5]);
 
 
     /** @todo parse that and return reasonable state */

@@ -45,7 +45,7 @@ void        encWritePhy(uint8_t address, uint16_t data);
 
 void encInitRegisters(uint8_t mac[]) {
     encWriteOp(ENC28J60_SOFT_RESET, 0, ENC28J60_SOFT_RESET);
-    chThdSleepSeconds(1); // errata B7/2
+    chThdSleepSeconds(2); // errata B7/2
     while (!encReadOp(ENC28J60_READ_CTRL_REG, ESTAT) & ESTAT_CLKRDY) continue;
 
     // Discard packages
@@ -66,7 +66,7 @@ void encInitRegisters(uint8_t mac[]) {
     encWriteReg(ETXND, TXSTOP_INIT);
 
     // Set rx filters
-    encWriteRegByte(ERXFCON, ERXFCON_BCEN | ERXFCON_MCEN | ERXFCON_HTEN | ERXFCON_PMEN | ERXFCON_PMEN | ERXFCON_UCEN);
+    encWriteRegByte(ERXFCON, ERXFCON_UCEN | ERXFCON_MCEN | ERXFCON_BCEN | ERXFCON_MPEN);
 
     // MAC control registers
     encWriteRegByte(MACON1, MACON1_MARXEN|MACON1_TXPAUS|MACON1_RXPAUS);
@@ -116,15 +116,13 @@ void encInit(uint8_t mac[]) {
 
 const SPIConfig spicfg  = {
     NULL,
-    GPIOA, //GPIO_ENC_PORT,
-    GPIOA_USART_RX, //GPIO_ENC_CS,
+    GPIO_ENC_PORT,
+    GPIO_ENC_CS,
     0
 };
 
 void encSpiInit() {
-    //palSetPad(GPIO_ENC_PORT,GPIO_ENC_CS);
-    palSetPadMode(GPIOA, GPIOA_USART_RX, PAL_MODE_OUTPUT_PUSHPULL);
-    palSetPad(GPIOA,GPIOA_USART_RX);
+    palSetPad(GPIO_ENC_PORT,GPIO_ENC_CS);
 
     spiInit();
     spiStart(SPI_ENC, &spicfg);
@@ -283,7 +281,8 @@ void encReadBuf(uint16_t  address, uint16_t len, uint8_t* data) {
         return;
     }
     chMtxLock(&SPIMutex);
-    _encWriteReg(ERDPT, address);
+    if(address != ENC_READLOCATION_ANY)
+        _encWriteReg(ERDPT, address);
     spiSelect(SPI_ENC);
     tx_buffer[0] = ENC28J60_READ_BUF_MEM | 0x1A;
     spiSend(SPI_ENC, 1, tx_buffer);
